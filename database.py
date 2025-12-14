@@ -1,5 +1,3 @@
-"""MongoDB database operations for candidate data storage."""
-
 from pymongo import MongoClient
 from datetime import datetime, timezone
 from typing import Optional
@@ -25,7 +23,6 @@ def save_candidate(candidate_data: dict) -> str:
     db = get_database()
     collection = db[config.CANDIDATES_COLLECTION]
     
-    # Add timestamp
     candidate_data["created_at"] = datetime.now(timezone.utc)
     candidate_data["updated_at"] = datetime.now(timezone.utc)
     
