@@ -1,0 +1,7 @@
+crewai
+crewai-tools
+google-genai
+streamlit
+python-dotenv
+pymongo
+PyPDF2
