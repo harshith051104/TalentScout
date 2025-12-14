@@ -138,10 +138,4 @@ Generates 3-5 practical questions based on the candidate's declared tech stack a
 | **PDF Text Extraction** | PyPDF2 handles various PDF formats |
 | **Exit Detection** | Keyword matching before processing |
 
-## 📄 License
-
-MIT License - Feel free to use and modify for your needs.
-
----
-
 Built with ❤️ using [Agno](https://docs.agno.com) and [Streamlit](https://streamlit.io)
