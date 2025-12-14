@@ -1,5 +1,3 @@
-"""TalentScout Hiring Assistant - Streamlit Application."""
-
 import streamlit as st
 from PyPDF2 import PdfReader
 from io import BytesIO
@@ -11,20 +9,17 @@ from pathlib import Path
 import signal
 import sys
 
-# Fix for Windows where some signals are not defined
 if sys.platform.startswith('win'):
     for sig in ['SIGHUP', 'SIGTSTP', 'SIGCONT']:
         if not hasattr(signal, sig):
             setattr(signal, sig, signal.SIGTERM)
 
-# Fix for Streamlit running in a separate thread
-# CrewAI attempts to register signal handlers which fails in non-main thread
+
 _original_signal = signal.signal
 def _patched_signal(signalnum, handler):
     try:
         return _original_signal(signalnum, handler)
     except ValueError:
-        # Ignore "signal only works in main thread" error
         pass
 signal.signal = _patched_signal
 
@@ -32,7 +27,6 @@ from crew_agent import TalentScoutCrew, get_resume_analysis_prompt, get_tech_que
 from database import save_candidate, update_candidate
 import config
 
-# Page configuration
 st.set_page_config(
     page_title="TalentScout - Hiring Assistant",
     page_icon=" ",
@@ -40,7 +34,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better UI
 st.markdown("""
 <style>
     .stApp {
@@ -159,7 +152,6 @@ def check_exit_keywords(message: str) -> bool:
     """Check if message contains exit keywords as whole words."""
     import re
     message_lower = message.lower().strip()
-    # Use word boundaries to match whole words only (prevents 'Rajendra' matching 'end')
     for keyword in config.EXIT_KEYWORDS:
         pattern = r'\b' + re.escape(keyword) + r'\b'
         if re.search(pattern, message_lower):
@@ -170,13 +162,11 @@ def check_exit_keywords(message: str) -> bool:
 def get_agent_response(user_message: str) -> str:
     """Get response from Agno agent."""
     try:
-        # Build context with conversation history
         context = "\n".join([
             f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
-            for m in st.session_state.messages  # Pass full history to utilize Gemini's long context
+            for m in st.session_state.messages
         ])
         
-        # Add candidate data context if available
         candidate_context = ""
         cd = st.session_state.candidate_data
         if cd["full_name"]:
@@ -199,8 +189,7 @@ Respond appropriately as the hiring assistant. If you haven't collected all requ
 ask for the next piece of information. If all info is collected and you haven't asked technical questions yet,
 generate and ask technical questions based on their tech stack."""
         
-        # Include resume file if uploaded for context
-        # Include resume text if available
+       
         if st.session_state.candidate_data.get("resume_text"):
             full_prompt += f"\n\nRESUME CONTENT:\n{st.session_state.candidate_data['resume_text']}"
         
@@ -219,17 +208,14 @@ def auto_save_session():
         candidate_data["last_active"] = datetime.now(timezone.utc)
         
         if st.session_state.session_id:
-            # Update existing session
             update_candidate(st.session_state.session_id, candidate_data)
         else:
-            # Create new session
             candidate_data["session_start"] = datetime.now(timezone.utc)
             doc_id = save_candidate(candidate_data)
             st.session_state.session_id = doc_id
             
     except Exception as e:
         print(f"Auto-save error: {e}")
-        # Don't show error to user to avoid interruption
 
 
 
@@ -255,7 +241,6 @@ def display_landing_page():
         
         if uploaded_file:
             with st.spinner("🚀 Analyzing your resume... please wait..."):
-                # Save uploaded file to temp directory
                 temp_dir = tempfile.gettempdir()
                 temp_path = Path(temp_dir) / f"resume_{uploaded_file.name}"
                 
@@ -264,7 +249,6 @@ def display_landing_page():
                 
                 st.session_state.resume_file_path = str(temp_path)
                 
-                # Enhanced resume analysis prompt
                 analysis_prompt = """Analyze this resume thoroughly and extract ALL available information.
 
 Provide your response in exactly this format:
@@ -284,14 +268,12 @@ Provide your response in exactly this format:
 **SUGGESTED INTERVIEW QUESTIONS:**
 [2-3 relevant questions based on their projects/experience mentioned in the resume]"""
                 
-                # Extract text from PDF
                 resume_text = ""
                 with open(temp_path, "rb") as f:
                     resume_text = extract_pdf_text(f)
                 
                 st.session_state.candidate_data["resume_text"] = resume_text
 
-                # Add resume text to prompt
                 analysis_prompt_with_context = f"{analysis_prompt}\n\nRESUME CONTENT:\n{resume_text}"
                 
                 analysis_response = st.session_state.agent.run(analysis_prompt_with_context)
@@ -299,10 +281,8 @@ Provide your response in exactly this format:
                 st.session_state.candidate_data["resume_analysis"] = analysis_response
                 st.session_state.resume_uploaded = True
                 
-                # Parse extracted info and populate candidate_data
                 analysis_text = analysis_response
                 
-                # Extract fields from analysis using simple parsing
                 def extract_field(text, field_name):
                     """Extract a field value from the analysis text."""
                     import re
@@ -314,7 +294,6 @@ Provide your response in exactly this format:
                             return value
                     return None
                 
-                # Auto-populate candidate data from resume
                 extracted_name = extract_field(analysis_text, "Full Name")
                 extracted_email = extract_field(analysis_text, "Email")
                 extracted_phone = extract_field(analysis_text, "Phone")
@@ -338,9 +317,8 @@ Provide your response in exactly this format:
                 if extracted_tech:
                     st.session_state.candidate_data["tech_stack"] = extracted_tech
                 
-                st.success("✅ Resume analyzed successfully!")
+                st.success("Resume analyzed successfully!")
                 
-                # Generate acknowledgment response
                 ack_response = st.session_state.agent.run(
                     f"""The candidate has shared their resume. Here's the analysis:
 
@@ -349,11 +327,9 @@ Provide your response in exactly this format:
 Acknowledge the resume upload, briefly summarize the key information you extracted (name, experience, skills), thank them for sharing it, and then proceed with the interview. Ask about any critical missing information OR if everything is extracted, move to the first technical question based on their tech stack."""
                 )
                 
-                # Initialize chat with this response
                 if not st.session_state.messages:
                      st.session_state.messages.append({"role": "assistant", "content": ack_response})
                 
-                # Auto-save after resume analysis
                 auto_save_session()
                 st.rerun()
 
@@ -369,34 +345,24 @@ def main():
     """Main application entry point."""
     initialize_session_state()
     
-    # Logic Routing
     if not st.session_state.resume_uploaded:
-        # Show landing page if no resume uploaded yet
         display_landing_page()
     else:
-        # Show chat interface if resume uploaded
         
-        # Header (Small)
         st.markdown('<h2 class="main-header" style="font-size: 1.5rem; margin-bottom: 0;">TalentScout Process</h2>', unsafe_allow_html=True)
         st.markdown('---')
     
-        # Display chat history
         display_chat()
         
-        # Chat input
         if not st.session_state.conversation_ended:
             if prompt := st.chat_input("Type your message here..."):
-                # Add user message
                 st.session_state.messages.append({"role": "user", "content": prompt})
                 
                 with st.chat_message("user"):
                     st.markdown(prompt)
-                
-                # Check for exit keywords
                 if check_exit_keywords(prompt):
                     st.session_state.conversation_ended = True
                     
-                    # Final save
                     auto_save_session()
                     doc_id = st.session_state.session_id
                     
@@ -419,13 +385,11 @@ Best of luck with your application! 🌟
                     with st.chat_message("assistant"):
                         st.markdown(farewell)
                 else:
-                    # Get agent response
                     with st.chat_message("assistant"):
                         with st.spinner("Thinking..."):
                             response = get_agent_response(prompt)
                             st.markdown(response)
                             st.session_state.messages.append({"role": "assistant", "content": response})
-                            # Auto-save after agent response
                             auto_save_session()
                 
                 st.rerun()
