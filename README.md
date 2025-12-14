@@ -137,5 +137,3 @@ Generates 3-5 practical questions based on the candidate's declared tech stack a
 | **Off-topic Handling** | System prompt instructs agent to redirect politely |
 | **PDF Text Extraction** | PyPDF2 handles various PDF formats |
 | **Exit Detection** | Keyword matching before processing |
-
-Built with ❤️ using [Agno](https://docs.agno.com) and [Streamlit](https://streamlit.io)
