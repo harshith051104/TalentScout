@@ -1,12 +1,9 @@
-"""CrewAI Agent definition for TalentScout Hiring Assistant."""
-
 import os
 from crewai import Agent, Task, Crew, LLM
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# System instructions map to Backstory and Goal
 SYSTEM_INSTRUCTIONS = """
 You are TalentScout, an intelligent hiring assistant for a technology recruitment agency.
 
@@ -65,9 +62,6 @@ gracefully end the conversation by:
 """
 
 def get_llm():
-    """Get the LLM instance."""
-    # Ensure GOOGLE_API_KEY is set
-    # CrewAI (via LiteLLM) uses 'gemini/...' format
     return LLM(model="gemini/gemini-flash-lite-latest")
 
 class TalentScoutCrew:
@@ -87,8 +81,7 @@ class TalentScoutCrew:
     def run(self, prompt: str) -> str:
         """Run the agent with the given prompt."""
         agent = self.get_agent()
-        
-        # Create a task that encapsulates the user's request
+
         task = Task(
             description=f"""
             Analyze the following conversation context and user message. 
@@ -112,9 +105,7 @@ class TalentScoutCrew:
         result = crew.kickoff()
         return str(result)
 
-# Helpers for prompts (can remain mostly same but integrated)
 def get_resume_analysis_prompt(resume_text: str) -> str:
-    """Generate prompt for resume analysis."""
     return f"""
             Analyze the following resume and extract key information:
 
@@ -131,7 +122,6 @@ def get_resume_analysis_prompt(resume_text: str) -> str:
             """
 
 def get_tech_questions_prompt(tech_stack: str, position: str) -> str:
-    """Generate prompt for technical question generation."""
     return f"""
     Generate 3-5 technical interview questions for a candidate applying for {position} position.
 
